@@ -190,7 +190,7 @@ def getCurLayer [MonadError m] : m Layer := do
 def getCurGameId [Monad m] : m Name := do
   match curGameExt.getState (← getEnv) with
   | some game => return game
-  | none => return defaultGameName
+  | none => return Name.mkSimple defaultGameName
 
 /-- Get the current world -/
 def getCurWorldId [MonadError m] : m Name := do
@@ -287,7 +287,7 @@ structure LevelInfo where
   lemmaTab : Option String
   module : Name
   displayName : Option String
-  statementName : Option String
+  statementName : Option Name
   template : Option String
   image: Option String
 deriving ToJson, FromJson
@@ -309,7 +309,7 @@ def GameLevel.toInfo (lvl : GameLevel) (env : Environment) : LevelInfo :=
       match lvl.lemmas.tiles.find? (·.new) with
       | some tile => tile.category
       | none => none
-    statementName := lvl.statementName.toString
+    statementName := lvl.statementName
     module := lvl.module
     displayName := match lvl.statementName with
       | .anonymous => none
@@ -468,8 +468,8 @@ def getLevel? (levelId : LevelId) : m (Option GameLevel) := do
 
 def getCurGame [Monad m] : m Game := do
   let some game ← getGame? (← getCurGameId)
-    | let game := {name := defaultGameName}
-      insertGame defaultGameName game
+    | let game := {name := Name.mkSimple defaultGameName}
+      insertGame (Name.mkSimple defaultGameName) game
       return game
   return game
 

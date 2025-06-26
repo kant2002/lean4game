@@ -201,12 +201,12 @@ def compileProof (inputCtx : Parser.InputContext) (snap : Snapshot) (hasWidgets 
   -- Recognize end snap
   if inputCtx.input.atEnd snap.mpState.pos ∧ couldBeEndSnap then
     let endSnap : Snapshot := {
-      beginPos := snap.mpState.pos
+      --beginPos := snap.mpState.pos
       stx := MyModule.mkEOI snap.mpState.pos
       mpState := snap.mpState
       cmdState := snap.cmdState
-      interactiveDiags := ← withNewInteractiveDiags snap.msgLog
-      tacticCache := snap.tacticCache
+      --interactiveDiags := ← withNewInteractiveDiags snap.msgLog
+      --tacticCache := snap.tacticCache
     }
     return endSnap
 
@@ -284,12 +284,12 @@ def compileProof (inputCtx : Parser.InputContext) (snap : Snapshot) (hasWidgets 
   if tacticStx.isMissing then throwServerError "Tactic execution went wrong. No stx found."
 
   let postCmdSnap : Snapshot := {
-    beginPos := tacticStx.getPos?.getD 0
+    --beginPos := tacticStx.getPos?.getD 0
     stx := tacticStx
     mpState := cmdParserState
     cmdState := postCmdState
-    interactiveDiags := ← withNewInteractiveDiags postCmdState.messages
-    tacticCache := (← IO.mkRef {})
+    --interactiveDiags := ← withNewInteractiveDiags postCmdState.messages
+    --tacticCache := (← IO.mkRef {})
   }
   return postCmdSnap
 

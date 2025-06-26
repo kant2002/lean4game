@@ -17,7 +17,7 @@ def levelIdFromFileName? (initParams : Lsp.InitializeParams) (fileName : String)
   let fileParts := fileName.splitOn "/"
   if fileParts.length == 3 then
     if let (some level, some game) := (fileParts[2]!.toNat?, initParams.rootUri?) then
-      return some {game, world := fileParts[1]!, level := level}
+      return some {game := (Name.mkSimple game), world := (Name.mkSimple fileParts[1]!), level := level}
   return none
 
 def getLevelByFileName? [Monad m] [MonadEnv m] (initParams : Lsp.InitializeParams) (fileName : String) : m (Option GameLevel) := do
@@ -123,7 +123,7 @@ def findHints (goal : MVarId) (m : DocumentMeta) (initParams : Lsp.InitializePar
           let mut hintFVarsNames : Array Expr := #[]
           for fvar in hintFVars do
             let name₁ ← fvar.fvarId!.getUserName
-            hintFVarsNames := hintFVarsNames.push <| Expr.fvar ⟨s!"«\{{name₁}}»"⟩
+            hintFVarsNames := hintFVarsNames.push <| Expr.fvar ⟨name₁⟩
 
           let lctx := (← goal.getDecl).lctx -- the player's local context
           if let some bij ← matchDecls hintFVars lctx.getFVars
@@ -176,19 +176,13 @@ def completionDiagnostics (goalCount : Nat) (prevGoalCount : Nat) (completed : B
         -- but cannot think of another option
         -- that would not involve manually adding them somewhere in the translation files.
         message := .text t!"level completed! 🎉"
-        range := {
-          start := pos
-          «end» := pos
-          }
-        severity? := Lsp.DiagnosticSeverity.information }
+        range := { start := pos, «end» := pos }
+        severity? := some .information }
     else if completedWithWarnings then
       out := out.push {
-        message := .text t!"level completed with warnings… 🎭"
-        range := {
-          start := pos
-          «end» := pos
-          }
-        severity? := Lsp.DiagnosticSeverity.information }
+        message := .text  t!"level completed with warnings… 🎭"
+        range := { start := pos, «end» := pos }
+        severity? := some .information }
     else
       pure ()
   else if goalCount < prevGoalCount then
@@ -197,11 +191,8 @@ def completionDiagnostics (goalCount : Nat) (prevGoalCount : Nat) (completed : B
     if (¬ (filterUnsolvedGoal startDiags).any (·.severity? == some .error)) then
       out := out.push {
         message := .text t!"intermediate goal solved! 🎉"
-        range := {
-          start := pos
-          «end» := pos
-          }
-        severity? := Lsp.DiagnosticSeverity.information
+        range := { start := pos, «end» := pos }
+        severity? := some .information
       }
 
   return out
@@ -229,7 +220,9 @@ def getProofState (_ : Lsp.PlainGoalParams) : RequestM (RequestTask (Option Proo
       -- Question: Is there a difference between the diags of this snap and the last snap?
       -- Should we get the diags from there?
       -- Answer: The last snap only copied the diags from the end of this snap
-      let mut diag : Array InteractiveDiagnostic := snap.interactiveDiags.toArray
+      -- Snapshot.diagnostics
+      let mut diag : Array InteractiveDiagnostic ← (snap.msgLog).toArray.mapM (
+          fun m => msgToInteractiveDiagnostic text m false)
 
       -- Level is completed if there are no errors or warnings
       let completedWithWarnings : Bool := ¬ diag.any (·.severity? == some .error)
